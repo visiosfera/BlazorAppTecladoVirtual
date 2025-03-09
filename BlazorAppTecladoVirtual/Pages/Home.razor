@@ -1,0 +1,39 @@
+﻿@page "/"
+@using BootstrapBlazor.Components
+
+<PageTitle>Home</PageTitle>
+
+<h3>On-Screen keyboard</h3>
+
+<OnScreenKeyboard />
+
+<DemoBlock Title="BootstrapBlazor"
+           Introduction=""
+           Name="App">
+
+    <div class="form-control textarea-demo">@BindValue</div>
+
+    <p>Input</p>
+    <BootstrapInput class="virtualkeyboardbb" data-kioskboard-specialcharacters="true" placeholder="BootstrapInput" @bind-Value="@BindValue" />
+    
+    <p>Password</p>
+    <BootstrapPassword class="virtualkeyboardbb" data-kioskboard-specialcharacters="true" placeholder="BootstrapPassword" @bind-Value="@BindValue" />
+    
+    <p>Textarea</p>
+    <Textarea class="virtualkeyboardbb" data-kioskboard-specialcharacters="true" placeholder="Textarea" rows="4" @bind-Value="@BindValue" />
+    
+    <p>Numérico</p>
+    <input class="form-control virtualkeyboard"
+           data-kioskboard-type="@KeyboardType.numpad.ToString()"
+           data-kioskboard-placement="@(KeyboardPlacement.bottom.ToString())"
+           placeholder='Insira um número' />
+
+    <OnScreenKeyboard ClassName="virtualkeyboardbb" Option="AppOption" />
+
+</DemoBlock>
+
+<AttributeTable Items="@GetAttributes()" />
+
+<AttributeTable Items="@GetKeyboardOptionAttributes()" Title="KeyboardOption" />
+
+<AttributeTable Items="@GetKeyboardEnumAttributes()" Title="KeyboardEnum" />

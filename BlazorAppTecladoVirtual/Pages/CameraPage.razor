@@ -1,0 +1,270 @@
+﻿@page "/camera"
+@using System.Diagnostics.CodeAnalysis
+@using BootstrapBlazor.Components
+
+<PageTitle>Câmera</PageTitle>
+
+<h1>Câmera</h1>
+
+<BootstrapBlazor.Components.Camera @ref="Camera" OnInit="@OnInit" OnOpen="@OnOpen" OnClose="@OnClose" OnError="@OnError" DeviceId="@DeviceId" />
+
+<BootstrapBlazor.Components.Select Items="@Devices" @bind-Value="@DeviceId" DisplayText="@DeviceLabel" ShowLabel="true" PlaceHolder="@PlaceHolderString"></BootstrapBlazor.Components.Select>
+@if (ImageUrl != null)
+{
+    <img src="@ImageUrl" class="mt-3" />
+}
+<div class="btn-group mt-3">
+    <BootstrapBlazor.Components.Button Text="@PlayText" Color="Color.Success" Icon="fa-solid fa-play" IsDisabled="PlayDisabled" OnClick="OnClickOpen"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="@StopText" Color="Color.Danger" Icon="fa-solid fa-stop" IsDisabled="StopDisabled" OnClick="OnClickClose"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="@PreviewText" Color="Color.Info" Icon="fa-solid fa-camera" IsDisabled="CaptureDisabled" OnClick="OnClickPreview"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="@SaveText" Color="Color.Info" Icon="fa-solid fa-camera" IsDisabled="CaptureDisabled" OnClick="OnClickSave"></BootstrapBlazor.Components.Button>
+</div>
+
+<div class="mt-3">
+    <BootstrapBlazor.Components.Button Text="QVGA" IsDisabled="StopDisabled" OnClickWithoutRender="() => OnApply(320, 240)"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="VGA" IsDisabled="StopDisabled" OnClickWithoutRender="() => OnApply(640, 380)"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="HD" IsDisabled="StopDisabled" OnClickWithoutRender="() => OnApply(1280, 720)"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="Full HD" IsDisabled="StopDisabled" OnClickWithoutRender="() => OnApply(1920, 1080)"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="Television 4K (3840 * 2160)" IsDisabled="StopDisabled" OnClickWithoutRender="() => OnApply(3840, 2160)"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="Cinema 4K (4096 * 2160)" IsDisabled="StopDisabled" OnClickWithoutRender="() => OnApply(4096, 2160)"></BootstrapBlazor.Components.Button>
+    <BootstrapBlazor.Components.Button Text="8K" IsDisabled="StopDisabled" OnClickWithoutRender="() => OnApply(7680, 4320)"></BootstrapBlazor.Components.Button>
+</div>
+<BootstrapBlazor.Components.ConsoleLogger @ref="Logger" />
+<div class="mt-3">
+    <img style="@ImageStyleString" src="@ImageContentData" />
+</div>
+
+<AttributeTable Items="@GetAttributes()" />
+
+@code {
+    private string? ImageUrl { get; set; }
+
+    [NotNull]
+    private BootstrapBlazor.Components.ConsoleLogger? Logger { get; set; }
+
+    [NotNull]
+    private string? TraceOnInit { get; set; }
+
+    [NotNull]
+    private string? TraceOnError { get; set; }
+
+    [NotNull]
+    private string? TraceOnStar { get; set; }
+
+    [NotNull]
+    private string? TraceOnClose { get; set; }
+
+    [NotNull]
+    private string? TraceOnCapture { get; set; }
+
+    private string? PlayText { get; set; }
+
+    private string? StopText { get; set; }
+
+    private string? PreviewText { get; set; }
+
+    private string? SaveText { get; set; }
+
+    private bool PlayDisabled { get; set; } = true;
+
+    private bool StopDisabled { get; set; } = true;
+
+    private bool CaptureDisabled { get; set; } = true;
+
+    private List<BootstrapBlazor.Components.SelectedItem> Devices { get; } = [];
+
+    private string? DeviceId { get; set; }
+
+    private string? DeviceLabel { get; set; }
+
+    private string? PlaceHolderString { get; set; }
+
+    [NotNull]
+    private BootstrapBlazor.Components.Camera? Camera { get; set; }
+
+    private string? ImageContentData { get; set; }
+
+    private string? ImageStyleString => BootstrapBlazor.Components.CssBuilder.Default("width: 320px; border-radius: var(--bs-border-radius);")
+        .AddClass("display: none;", string.IsNullOrEmpty(ImageContentData))
+        .Build();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        DeviceLabel = "Camera";
+        PlaceHolderString = "Initializing ...";
+        PlayText = "Open";
+        StopText = "Close";
+        PreviewText = "Preview";
+        SaveText = "Save";
+    }
+
+    private Task OnInit(List<BootstrapBlazor.Components.DeviceItem> devices)
+    {
+        if (devices.Any())
+        {
+            Devices.AddRange(devices.Select(d => new BootstrapBlazor.Components.SelectedItem(d.DeviceId, d.Label)));
+            PlayDisabled = false;
+        }
+        else
+        {
+            PlaceHolderString = "Video device not found";
+        }
+
+        foreach (var item in devices)
+        {
+            Logger.Log($"{TraceOnInit} {item.Label}-{item.DeviceId}");
+        }
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task OnClickOpen()
+    {
+        await Camera.Open();
+        PlayDisabled = true;
+        StopDisabled = false;
+        CaptureDisabled = false;
+    }
+
+    private async Task OnClickClose()
+    {
+        await Camera.Close();
+        ImageContentData = null;
+        PlayDisabled = false;
+        StopDisabled = true;
+        CaptureDisabled = true;
+    }
+
+    private async Task OnClickPreview()
+    {
+        ImageContentData = null;
+        var stream = await Camera.Capture();
+        if (stream != null)
+        {
+            var reader = new StreamReader(stream);
+            ImageContentData = await reader.ReadToEndAsync();
+            reader.Close();
+        }
+    }
+
+    private Task OnClickSave() => Camera.SaveAndDownload($"capture_{DateTime.Now:hhmmss}.png");
+
+    private Task OnApply(int width, int height) => Camera.Resize(width, height);
+
+    private Task OnError(string err)
+    {
+        PlayDisabled = false;
+        StopDisabled = true;
+        CaptureDisabled = true;
+        PlaceHolderString = "Video device not found";
+        Logger.Log($"{TraceOnError} {err}");
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnOpen()
+    {
+        ImageUrl = null;
+        Logger.Log(TraceOnStar);
+        return Task.CompletedTask;
+    }
+
+    private Task OnClose()
+    {
+        Logger.Log(TraceOnClose);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 获得属性方法
+    /// </summary>
+    /// <returns></returns>
+    private AttributeItem[] GetAttributes() =>
+        [
+        new()
+        {
+            Name = nameof(BootstrapBlazor.Components.Camera.VideoWidth),
+            Description = "The width of Video window",
+            Type = "int",
+            ValueList = " — ",
+            DefaultValue = "320"
+        },
+        new()
+        {
+            Name = nameof(BootstrapBlazor.Components.Camera.VideoHeight),
+            Description = "The height of Video window",
+            Type = "int",
+            ValueList = " — ",
+            DefaultValue = "240"
+        },
+        new()
+        {
+            Name = "ShowPreview",
+            Description = "Whether to show photo preview",
+            Type = "bool",
+            ValueList = "true|false",
+            DefaultValue = "false"
+        },
+        new()
+        {
+            Name = "AutoStart",
+            Description = "Whether open the camera auto",
+            Type = "bool",
+            ValueList = "true|false",
+            DefaultValue = "false"
+        },
+        new()
+        {
+            Name = "DeviceLabel",
+            Description = "Camera",
+            Type = "string",
+            ValueList = " — ",
+            DefaultValue = " — "
+        },
+        new()
+        {
+            Name = "OnInit",
+            Description = "Initialize the camera callback method",
+            Type = "Func<IEnumerable<DeviceItem>, Task>",
+            ValueList = " — ",
+            DefaultValue = " — "
+        },
+        new()
+        {
+            Name = "OnStart",
+            Description = "Start capture callback method",
+            Type = "Func<Task>",
+            ValueList = " — ",
+            DefaultValue = " — "
+        },
+        new()
+        {
+            Name = "OnClose",
+            Description = "Turn off the capture callback method",
+            Type = "Func<Task>",
+            ValueList = " — ",
+            DefaultValue = " — "
+        },
+        new()
+        {
+            Name = nameof(BootstrapBlazor.Components.Camera.CaptureJpeg),
+            Description = "Set the capture image format as Jpeg, default is Png",
+            Type = "bool",
+            ValueList = " — ",
+            DefaultValue = "false"
+        },
+        new()
+        {
+            Name = nameof(BootstrapBlazor.Components.Camera.Quality),
+            Description = "Capture image quality, default is 0.9",
+            Type = "double",
+            ValueList = " — ",
+            DefaultValue = " 0.9d"
+        }
+    ];
+}
+}

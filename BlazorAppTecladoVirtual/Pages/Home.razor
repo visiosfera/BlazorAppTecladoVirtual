@@ -3,7 +3,7 @@
 
 <PageTitle>Home</PageTitle>
 
-<h3>On-Screen keyboard</h3>
+<h3>Teclado virtual</h3>
 
 <OnScreenKeyboard />
 
@@ -11,7 +11,7 @@
            Introduction=""
            Name="App">
 
-    <div class="form-control textarea-demo">@BindValue</div>
+    <BootstrapLabel Value="@BindValue" />
 
     <p>Input</p>
     <BootstrapInput class="virtualkeyboardbb" data-kioskboard-specialcharacters="true" placeholder="BootstrapInput" @bind-Value="@BindValue" />
